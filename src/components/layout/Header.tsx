@@ -8,12 +8,25 @@ import {
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
-// Simple auth state management
+// Simple auth state management with persistence
 let authState = {
   isSignedIn: false,
   user: null as { email: string } | null,
-  listeners: [] as Array<(state: typeof authState) => void>
+  listeners: [] as Array<(state: typeof authState) => void>,
 };
+
+// Load saved user from localStorage when the app first runs
+const savedUser = localStorage.getItem("authUser");
+if (savedUser) {
+  try {
+    const parsedUser = JSON.parse(savedUser);
+    authState.isSignedIn = true;
+    authState.user = parsedUser;
+  } catch (e) {
+    console.error("Failed to parse saved user:", e);
+    localStorage.removeItem("authUser");
+  }
+}
 
 export const useAuth = () => {
   const [state, setState] = useState(authState);
@@ -22,26 +35,29 @@ export const useAuth = () => {
     const listener = (newState: typeof authState) => setState({ ...newState });
     authState.listeners.push(listener);
     return () => {
-      authState.listeners = authState.listeners.filter(l => l !== listener);
+      authState.listeners = authState.listeners.filter((l) => l !== listener);
     };
   }, []);
 
   return {
     ...state,
-    // CHANGE: Accept 'email' as an argument
     signIn: (email: string) => {
       authState.isSignedIn = true;
-      // CHANGE: Use the provided email
-      authState.user = { email: email };
-      authState.listeners.forEach(l => l(authState));
+      authState.user = { email };
+      // ✅ Save to localStorage
+      localStorage.setItem("authUser", JSON.stringify(authState.user));
+      authState.listeners.forEach((l) => l(authState));
     },
     signOut: () => {
       authState.isSignedIn = false;
       authState.user = null;
-      authState.listeners.forEach(l => l(authState));
-    }
+      // ✅ Remove from localStorage
+      localStorage.removeItem("authUser");
+      authState.listeners.forEach((l) => l(authState));
+    },
   };
 };
+
 
 const Header = () => {
   const { isSignedIn, user, signOut } = useAuth();
