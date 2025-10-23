@@ -9,6 +9,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import {
@@ -75,7 +82,7 @@ const DatabaseSearch = () => {
     contact: true,
   });
 
-  const [githubVisibility, setGitHubVisibility] = useState<GitHubVisibility>({
+  const [githubVisibility, setGithubVisibility] = useState<GitHubVisibility>({
     followers: true,
     stars: true,
     repositories: true,
@@ -163,6 +170,20 @@ const DatabaseSearch = () => {
     handleSearch();
   };
 
+  const toggleColumn = (column: keyof ColumnVisibility) => {
+    setColumnVisibility(prev => ({
+      ...prev,
+      [column]: !prev[column]
+    }));
+  };
+
+  const toggleGithubField = (field: keyof GitHubVisibility) => {
+    setGithubVisibility(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
+
   const handleSort = (field: string) => {
     setSortOption((prev) =>
       prev?.field === field
@@ -228,6 +249,126 @@ const DatabaseSearch = () => {
               >
                 Reset
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Filters
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-80 bg-gray-800 border-gray-700">
+                  <DropdownMenuLabel className="text-gray-300">Toggle Columns</DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-gray-700" />
+                  
+                  {/* Main columns */}
+                  {Object.entries(columnVisibility).filter(([key]) => !['github', 'linkedin'].includes(key)).map(([key, value]) => (
+                    <div key={key} className="flex items-center space-x-2 px-2 py-1.5 hover:bg-gray-700 rounded">
+                      <Checkbox
+                        id={key}
+                        checked={value}
+                        onCheckedChange={() => toggleColumn(key as keyof ColumnVisibility)}
+                        className="border-gray-500"
+                      />
+                      <label
+                        htmlFor={key}
+                        className="text-sm text-gray-300 capitalize cursor-pointer flex-1"
+                      >
+                        {key === 'twitter' ? 'Twitter' : key === 'contact' ? 'Email' : key}
+                      </label>
+                    </div>
+                  ))}
+
+                  {/* GitHub Section */}
+                  <DropdownMenuSeparator className="bg-gray-700" />
+                  <div className="px-2 py-1.5">
+                    <div className="flex items-center space-x-2 hover:bg-gray-700 rounded p-1">
+                      <Checkbox
+                        id="github"
+                        checked={columnVisibility.github}
+                        onCheckedChange={() => toggleColumn('github')}
+                        className="border-gray-500"
+                      />
+                      <label htmlFor="github" className="text-sm text-gray-300 cursor-pointer flex-1 font-medium">
+                        GitHub
+                      </label>
+                    </div>
+                    {columnVisibility.github && (
+                      <div className="ml-6 space-y-1 mt-2">
+                        {Object.entries(githubVisibility).map(([key, value]) => (
+                          <div key={key} className="flex items-center space-x-2 hover:bg-gray-700 rounded p-1">
+                            <Checkbox
+                              id={`github-${key}`}
+                              checked={value}
+                              onCheckedChange={() => toggleGithubField(key as keyof GitHubVisibility)}
+                              className="border-gray-500"
+                            />
+                            <label
+                              htmlFor={`github-${key}`}
+                              className="text-sm text-gray-400 capitalize cursor-pointer flex-1"
+                            >
+                              {key === 'repositories' ? 'Repos' : key}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* LinkedIn Section */}
+                  <DropdownMenuSeparator className="bg-gray-700" />
+                  <div className="px-2 py-1.5">
+                    <div className="flex items-center space-x-2 hover:bg-gray-700 rounded p-1">
+                      <Checkbox
+                        id="linkedin"
+                        checked={columnVisibility.linkedin}
+                        onCheckedChange={() => toggleColumn('linkedin')}
+                        className="border-gray-500"
+                      />
+                      <label htmlFor="linkedin" className="text-sm text-gray-300 cursor-pointer flex-1 font-medium">
+                        LinkedIn
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Sort Section */}
+                  <DropdownMenuSeparator className="bg-gray-700" />
+                  <DropdownMenuLabel className="text-gray-300">Sort By</DropdownMenuLabel>
+                  <div className="px-2 py-1.5 space-y-1">
+                    {[
+                      { field: 'github-followers', label: 'GitHub Followers' },
+                      { field: 'github-stars', label: 'GitHub Stars' },
+                      { field: 'github-repos', label: 'GitHub Repos' },
+                      { field: 'twitter-followers', label: 'Twitter Followers' }
+                    ].map(({ field, label }) => (
+                      <button
+                        key={field}
+                        onClick={() => handleSort(field)}
+                        className={`w-full text-left px-2 py-1 rounded text-sm hover:bg-gray-700 flex items-center justify-between ${
+                          sortOption?.field === field ? 'bg-gray-700 text-blue-400' : 'text-gray-300'
+                        }`}
+                      >
+                        <span>{label}</span>
+                        {sortOption?.field === field && (
+                          <span className="text-xs">
+                            {sortOption.direction === 'desc' ? '↓' : '↑'}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Reset Section */}
+                  <DropdownMenuSeparator className="bg-gray-700" />
+                  <div className="px-2 py-1.5">
+                    <button
+                      onClick={resetFilters}
+                      className="w-full text-left px-2 py-1 rounded text-sm hover:bg-gray-700 text-red-400 hover:text-red-300"
+                    >
+                      Reset to Default
+                    </button>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
@@ -273,11 +414,11 @@ const DatabaseSearch = () => {
               <TableHeader>
                 <TableRow className="border-gray-700">
                   <TableHead className="text-gray-300">Developer</TableHead>
-                  <TableHead className="text-gray-300">Skills</TableHead>
-                  <TableHead className="text-gray-300">GitHub</TableHead>
-                  <TableHead className="text-gray-300">LinkedIn</TableHead>
-                  <TableHead className="text-gray-300">Twitter</TableHead>
-                  <TableHead className="text-gray-300">Email</TableHead>
+                  {columnVisibility.skills && <TableHead className="text-gray-300">Skills</TableHead>}
+                  {columnVisibility.github && <TableHead className="text-gray-300">GitHub</TableHead>}
+                  {columnVisibility.linkedin && <TableHead className="text-gray-300">LinkedIn</TableHead>}
+                  {columnVisibility.twitter && <TableHead className="text-gray-300">Twitter</TableHead>}
+                  {columnVisibility.contact && <TableHead className="text-gray-300">Email</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -292,97 +433,112 @@ const DatabaseSearch = () => {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {dev.skills.map((s) => (
-                          <span key={s} className="px-2 py-1 bg-blue-600/20 text-blue-300 rounded text-xs">
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    </TableCell>
+                    {columnVisibility.skills && (
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {dev.skills.map((s) => (
+                            <span key={s} className="px-2 py-1 bg-blue-600/20 text-blue-300 rounded text-xs">
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </TableCell>
+                    )}
                     {/* GitHub */}
-                    <TableCell>
-                      {dev.githubUrl && dev.githubUrl !== "https://github.com/"
-                        ? (
+                    {columnVisibility.github && (
+                      <TableCell>
+                        {dev.githubUrl && dev.githubUrl !== "https://github.com/"
+                          ? (
+                            <>
+                              <a
+                                href={dev.githubUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-400 flex items-center"
+                              >
+                                <Github className="h-3 w-3 mr-1" /> Profile{" "}
+                                <ExternalLink className="h-3 w-3 ml-1" />
+                              </a>
+                              <div className="text-xs text-gray-400">
+                                {githubVisibility.followers && (
+                                  <div>👥 {dev.socialMedia.github.followers} followers</div>
+                                )}
+                                {githubVisibility.stars && (
+                                  <div>⭐ {dev.socialMedia.github.stars} stars</div>
+                                )}
+                                {githubVisibility.repositories && (
+                                  <div>📁 {dev.socialMedia.github.repositories} repos</div>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <span className="text-gray-500 text-sm italic">No Account</span>
+                          )}
+                      </TableCell>
+                    )}
+
+                    {/* LinkedIn */}
+                    {columnVisibility.linkedin && (
+                      <TableCell>
+                        {dev.socialMedia.linkedin.url ? (
+                          <a
+                            href={dev.socialMedia.linkedin.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 flex items-center"
+                          >
+                            <Linkedin className="h-3 w-3 mr-1" /> Profile{" "}
+                            <ExternalLink className="h-3 w-3 ml-1" />
+                          </a>
+                        ) : (
+                          <span className="text-gray-500 text-sm italic">No Account</span>
+                        )}
+                      </TableCell>
+                    )}
+
+                    {/* Twitter */}
+                    {columnVisibility.twitter && (
+                      <TableCell>
+                        {dev.socialMedia.twitter.url ? (
                           <>
                             <a
-                              href={dev.githubUrl}
+                              href={dev.socialMedia.twitter.url}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-400 flex items-center"
                             >
-                              <Github className="h-3 w-3 mr-1" /> Profile{" "}
+                              <Twitter className="h-3 w-3 mr-1" /> Profile{" "}
                               <ExternalLink className="h-3 w-3 ml-1" />
                             </a>
                             <div className="text-xs text-gray-400">
-                              👥 {dev.socialMedia.github.followers} followers<br />
-                              ⭐ {dev.socialMedia.github.stars} stars
+                              👥 {dev.socialMedia.twitter.followers} followers
                             </div>
                           </>
                         ) : (
                           <span className="text-gray-500 text-sm italic">No Account</span>
                         )}
-                    </TableCell>
-
-                    {/* LinkedIn */}
-                    <TableCell>
-                      {dev.socialMedia.linkedin.url ? (
-                        <a
-                          href={dev.socialMedia.linkedin.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-400 flex items-center"
-                        >
-                          <Linkedin className="h-3 w-3 mr-1" /> Profile{" "}
-                          <ExternalLink className="h-3 w-3 ml-1" />
-                        </a>
-                      ) : (
-                        <span className="text-gray-500 text-sm italic">No Account</span>
-                      )}
-                    </TableCell>
-
-                    {/* Twitter */}
-                    <TableCell>
-                      {dev.socialMedia.twitter.url ? (
-                        <>
-                          <a
-                            href={dev.socialMedia.twitter.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 flex items-center"
-                          >
-                            <Twitter className="h-3 w-3 mr-1" /> Profile{" "}
-                            <ExternalLink className="h-3 w-3 ml-1" />
-                          </a>
-                          <div className="text-xs text-gray-400">
-                            👥 {dev.socialMedia.twitter.followers} followers
-                          </div>
-                        </>
-                      ) : (
-                        <span className="text-gray-500 text-sm italic">No Account</span>
-                      )}
-                    </TableCell>
+                      </TableCell>
+                    )}
                     {/* Contact */}
-                    <TableCell>
-                      {dev.email && dev.email.trim() !== "" ? (
-                            <button
-                            onClick={() => {
-                              const email = dev.email.trim();
-                              const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}`;
-                              window.open(gmailUrl, "_blank", "noopener,noreferrer");
-                            }}
-                            className="text-blue-400 hover:text-blue-300 flex items-center"
-                          >
-                            <Mail className="h-4 w-4 mr-1" />
-                            Contact
-                          </button>
-                      ) : (
-                        <span className="text-gray-500 text-sm italic">No Account</span>
-                      )}
-                    </TableCell>
-
-
+                    {columnVisibility.contact && (
+                      <TableCell>
+                        {dev.email && dev.email.trim() !== "" ? (
+                              <button
+                              onClick={() => {
+                                const email = dev.email.trim();
+                                const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}`;
+                                window.open(gmailUrl, "_blank", "noopener,noreferrer");
+                              }}
+                              className="text-blue-400 hover:text-blue-300 flex items-center"
+                            >
+                              <Mail className="h-4 w-4 mr-1" />
+                              Contact
+                            </button>
+                        ) : (
+                          <span className="text-gray-500 text-sm italic">No Account</span>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
