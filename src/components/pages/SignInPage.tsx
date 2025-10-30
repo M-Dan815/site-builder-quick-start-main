@@ -47,7 +47,7 @@ const SignInPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:3000/api/login", {
+      const response = await fetch("http://codepark.net:3000/api/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

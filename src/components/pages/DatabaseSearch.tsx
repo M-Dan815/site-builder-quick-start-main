@@ -52,7 +52,7 @@ interface SortOption {
   direction: "asc" | "desc";
 }
 
-const BACKEND_URL = "http://localhost:3000"; // backend base
+const BACKEND_URL = "http://codepark.net:3000/"; // backend base
 const MODULE_ID = 1; // module ID for users
 const TABLE_PREFIX = "users__";
 
