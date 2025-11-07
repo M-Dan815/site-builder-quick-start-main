@@ -113,7 +113,6 @@ const DatabaseSearch = () => {
 
 	const {toast} = useToast();
 
-	// ✅ Always call backend even without filters
 	useEffect(() => {
 		handleSearch();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -235,7 +234,6 @@ const DatabaseSearch = () => {
 	return (
 		<div className="min-h-screen bg-gray-900 text-white p-6">
 			<div className="container mx-auto">
-				{/* Header */}
 				<div className="mb-8">
 					<h1 className="text-3xl font-bold mb-2 flex items-center">
 						<Users className="mr-3 text-blue-400" />
@@ -246,7 +244,6 @@ const DatabaseSearch = () => {
 					</p>
 				</div>
 
-				{/* Search + Filters */}
 				<div className="bg-gray-800 rounded-lg p-6 mb-8">
 					<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
 						<div className="relative">
@@ -291,7 +288,6 @@ const DatabaseSearch = () => {
 						</div>
 					</div>
 
-					{/* Pagination Selector */}
 					<div className="flex items-center justify-between mt-4">
 						<div className="flex items-center space-x-2">
 							<span className="text-gray-300 text-sm">Show</span>
@@ -327,7 +323,6 @@ const DatabaseSearch = () => {
 					</div>
 				</div>
 
-				{/* Results */}
 				<div className="bg-gray-800 rounded-lg overflow-hidden">
 					<div className="p-4 border-b border-gray-700">
 						<h2 className="text-xl font-semibold">
@@ -371,6 +366,7 @@ const DatabaseSearch = () => {
 												</div>
 											</div>
 										</TableCell>
+
 										{columnVisibility.skills && (
 											<TableCell>
 												<div className="flex flex-wrap gap-1">
@@ -385,6 +381,7 @@ const DatabaseSearch = () => {
 												</div>
 											</TableCell>
 										)}
+
 										{/* GitHub */}
 										{columnVisibility.github && (
 											<TableCell>
@@ -473,27 +470,59 @@ const DatabaseSearch = () => {
 												)}
 											</TableCell>
 										)}
-										{/* Contact */}
+
+										{/* ✅ Updated Contact */}
 										{columnVisibility.contact && (
 											<TableCell>
 												{dev.email && dev.email.trim() !== "" ? (
-													<button
-														onClick={() => {
-															const email = dev.email.trim();
-															const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
-																email
-															)}`;
-															window.open(
-																gmailUrl,
-																"_blank",
-																"noopener,noreferrer"
-															);
-														}}
-														className="text-blue-400 hover:text-blue-300 flex items-center"
-													>
-														<Mail className="h-4 w-4 mr-1" />
-														Contact
-													</button>
+													<DropdownMenu>
+														<DropdownMenuTrigger asChild>
+															<Button
+																variant="ghost"
+																className="text-blue-400 hover:text-blue-300 flex items-center px-0"
+															>
+																<Mail className="h-4 w-4 mr-1" />
+																Contact
+															</Button>
+														</DropdownMenuTrigger>
+														<DropdownMenuContent className="bg-gray-800 border-gray-700 text-white">
+															<DropdownMenuLabel className="text-gray-300 text-sm mb-1">
+																{dev.email}
+															</DropdownMenuLabel>
+															<DropdownMenuSeparator className="bg-gray-700" />
+															<button
+																onClick={() => {
+																	navigator.clipboard.writeText(
+																		dev.email.trim()
+																	);
+																	toast({
+																		title: "Copied!",
+																		description:
+																			"Email address copied to clipboard.",
+																	});
+																}}
+																className="w-full text-left px-3 py-2 hover:bg-gray-700 text-sm"
+															>
+																📋 Copy Email
+															</button>
+															<button
+																onClick={() => {
+																	const email = dev.email.trim();
+																	const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
+																		email
+																	)}`;
+																	window.open(
+																		gmailUrl,
+																		"_blank",
+																		"noopener,noreferrer"
+																	);
+																}}
+																className="w-full text-left px-3 py-2 hover:bg-gray-700 text-sm"
+															>
+																📬 Contact Now
+															</button>
+														</DropdownMenuContent>
+													</DropdownMenu>
 												) : (
 													<span className="text-gray-500 text-sm italic">
 														No Account
@@ -506,70 +535,46 @@ const DatabaseSearch = () => {
 							</TableBody>
 						</Table>
 					</div>
+				</div>
 
-					{/* Pagination */}
-					{totalPages > 1 && (
-						<div className="p-4 border-t border-gray-700">
-							<Pagination>
-								<PaginationContent>
-									<PaginationItem>
-										<PaginationPrevious
-											href="#"
-											onClick={(e) => {
-												e.preventDefault();
-												if (currentPage > 1) handlePageChange(currentPage - 1);
-											}}
-											className={
-												currentPage === 1
-													? "pointer-events-none opacity-50"
-													: ""
-											}
-										/>
-									</PaginationItem>
-
-									{Array.from({length: Math.min(5, totalPages)}, (_, i) => {
-										let pageNum;
-										if (totalPages <= 5) pageNum = i + 1;
-										else if (currentPage <= 3) pageNum = i + 1;
-										else if (currentPage >= totalPages - 2)
-											pageNum = totalPages - 4 + i;
-										else pageNum = currentPage - 2 + i;
-
-										return (
-											<PaginationItem key={pageNum}>
-												<PaginationLink
-													href="#"
-													onClick={(e) => {
-														e.preventDefault();
-														handlePageChange(pageNum);
-													}}
-													isActive={currentPage === pageNum}
-												>
-													{pageNum}
-												</PaginationLink>
-											</PaginationItem>
-										);
-									})}
-
-									<PaginationItem>
-										<PaginationNext
-											href="#"
-											onClick={(e) => {
-												e.preventDefault();
-												if (currentPage < totalPages)
-													handlePageChange(currentPage + 1);
-											}}
-											className={
-												currentPage === totalPages
-													? "pointer-events-none opacity-50"
-													: ""
-											}
-										/>
-									</PaginationItem>
-								</PaginationContent>
-							</Pagination>
-						</div>
-					)}
+				{/* Pagination */}
+				<div className="flex justify-center mt-6">
+					<Pagination>
+						<PaginationContent>
+							<PaginationItem>
+								<PaginationPrevious
+									onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+									className={`${
+										currentPage === 1
+											? "opacity-50 pointer-events-none"
+											: "cursor-pointer"
+									}`}
+								/>
+							</PaginationItem>
+							{Array.from({length: totalPages}, (_, i) => (
+								<PaginationItem key={i}>
+									<PaginationLink
+										onClick={() => handlePageChange(i + 1)}
+										isActive={currentPage === i + 1}
+									>
+										{i + 1}
+									</PaginationLink>
+								</PaginationItem>
+							))}
+							<PaginationItem>
+								<PaginationNext
+									onClick={() =>
+										handlePageChange(Math.min(currentPage + 1, totalPages))
+									}
+									className={`${
+										currentPage === totalPages
+											? "opacity-50 pointer-events-none"
+											: "cursor-pointer"
+									}`}
+								/>
+							</PaginationItem>
+						</PaginationContent>
+					</Pagination>
 				</div>
 			</div>
 		</div>
