@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import Layout from "@/components/layout/Layout";
 import {useState} from "react";
-
+const BASE_URL = import.meta.env.VITE_API_URL;
 const ContactSupport = () => {
 	const [formData, setFormData] = useState({
 		name: "",
@@ -43,7 +43,7 @@ const ContactSupport = () => {
 		setStatus(null);
 
 		try {
-			const res = await fetch("http://localhost:3000/api/give-feedback", {
+			const res = await fetch(`${BASE_URL}/api/give-feedback`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",

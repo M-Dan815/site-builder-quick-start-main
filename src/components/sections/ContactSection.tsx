@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import {Mail, Phone, MapPin} from "lucide-react";
 import {useToast} from "@/components/ui/use-toast";
-
+const BASE_URL = import.meta.env.VITE_API_URL;
 const ContactSection = () => {
 	const [email, setEmail] = useState("");
 	const [loading, setLoading] = useState(false);
@@ -31,7 +31,7 @@ const ContactSection = () => {
 
 		setLoading(true);
 		try {
-			const res = await fetch("http://localhost:3000/api/request-demo", {
+			const res = await fetch(`${BASE_URL}/api/request-demo`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
