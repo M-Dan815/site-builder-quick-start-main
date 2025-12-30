@@ -1,65 +1,32 @@
-import {Database, User, LogOut, HelpCircle} from "lucide-react";
+// src/layout/Header.tsx (or wherever your Header is)
+import {
+	Database,
+	User,
+	LogOut,
+	HelpCircle,
+	Monitor,
+	Loader2,
+} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
-import {useState, useEffect} from "react";
-import {Link} from "react-router-dom";
-import {useNavigate} from "react-router-dom";
-
-// Simple auth state management with persistence
-let authState = {
-	isSignedIn: false,
-	user: null as {email: string} | null,
-	listeners: [] as Array<(state: typeof authState) => void>,
-};
-
-// Load saved user from localStorage when the app first runs
-const savedUser = localStorage.getItem("authUser");
-if (savedUser) {
-	try {
-		const parsedUser = JSON.parse(savedUser);
-		authState.isSignedIn = true;
-		authState.user = parsedUser;
-	} catch (e) {
-		console.error("Failed to parse saved user:", e);
-		localStorage.removeItem("authUser");
-	}
-}
-
-export const useAuth = () => {
-	const [state, setState] = useState(authState);
-
-	useEffect(() => {
-		const listener = (newState: typeof authState) => setState({...newState});
-		authState.listeners.push(listener);
-		return () => {
-			authState.listeners = authState.listeners.filter((l) => l !== listener);
-		};
-	}, []);
-
-	return {
-		...state,
-		signIn: (email: string) => {
-			authState.isSignedIn = true;
-			authState.user = {email};
-			// ✅ Save to localStorage
-			localStorage.setItem("authUser", JSON.stringify(authState.user));
-			authState.listeners.forEach((l) => l(authState));
-		},
-		signOut: () => {
-			authState.isSignedIn = false;
-			authState.user = null;
-			// ✅ Remove from localStorage
-			localStorage.removeItem("authUser");
-			authState.listeners.forEach((l) => l(authState));
-		},
-	};
-};
+import {useState} from "react";
+import {Link, useNavigate} from "react-router-dom";
+import {useAuth} from "@/context/AuthContext";
 
 const Header = () => {
 	const {isSignedIn, user, signOut} = useAuth();
+	const [isSigningOut, setIsSigningOut] = useState(false);
 	const navigate = useNavigate();
+
 	const handleContactSupport = () => {
 		navigate("/contact-support");
+	};
+
+	const handleSignOut = async () => {
+		setIsSigningOut(true);
+		await signOut();
+		setIsSigningOut(false);
+		navigate("/sign-in");
 	};
 
 	return (
@@ -105,40 +72,63 @@ const Header = () => {
 							</Button>
 						</Link>
 					) : (
-						<Popover>
-							<PopoverTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="text-blue-400 hover:bg-gray-800"
-								>
-									<User className="h-5 w-5" />
-								</Button>
-							</PopoverTrigger>
-							<PopoverContent className="w-56 bg-gray-800 border-gray-700">
-								<div className="flex flex-col space-y-2">
-									<p className="text-sm text-gray-300">{user?.email}</p>
+						<div className="flex items-center space-x-3">
+							{/* Seat indicator */}
+							<div className="hidden md:flex items-center text-sm text-gray-400">
+								<Monitor className="h-4 w-4 mr-1" />
+								<span>
+									{user?.activeSeats}/{user?.maxSeats} seats
+								</span>
+							</div>
+
+							<Popover>
+								<PopoverTrigger asChild>
 									<Button
 										variant="ghost"
-										size="sm"
-										onClick={handleContactSupport}
-										className="justify-start text-gray-300 hover:bg-gray-700"
+										size="icon"
+										className="text-blue-400 hover:bg-gray-800"
 									>
-										<HelpCircle className="h-4 w-4 mr-2" />
-										Contact Support
+										<User className="h-5 w-5" />
 									</Button>
-									<Button
-										variant="ghost"
-										size="sm"
-										onClick={signOut}
-										className="justify-start text-gray-300 hover:bg-gray-700"
-									>
-										<LogOut className="h-4 w-4 mr-2" />
-										Sign Out
-									</Button>
-								</div>
-							</PopoverContent>
-						</Popover>
+								</PopoverTrigger>
+								<PopoverContent className="w-64 bg-gray-800 border-gray-700">
+									<div className="flex flex-col space-y-3">
+										<div className="border-b border-gray-700 pb-3">
+											<p className="text-sm font-medium text-white">
+												{user?.email}
+											</p>
+											<p className="text-xs text-gray-400 mt-1">
+												Using {user?.activeSeats} of {user?.maxSeats} seat
+												{(user?.maxSeats ?? 0) > 1 ? "s" : ""}
+											</p>
+										</div>
+										<Button
+											variant="ghost"
+											size="sm"
+											onClick={handleContactSupport}
+											className="justify-start text-gray-300 hover:bg-gray-700"
+										>
+											<HelpCircle className="h-4 w-4 mr-2" />
+											Contact Support
+										</Button>
+										<Button
+											variant="ghost"
+											size="sm"
+											onClick={handleSignOut}
+											disabled={isSigningOut}
+											className="justify-start text-gray-300 hover:bg-gray-700"
+										>
+											{isSigningOut ? (
+												<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+											) : (
+												<LogOut className="h-4 w-4 mr-2" />
+											)}
+											Sign Out
+										</Button>
+									</div>
+								</PopoverContent>
+							</Popover>
+						</div>
 					)}
 				</div>
 			</div>

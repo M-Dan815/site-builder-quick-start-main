@@ -1,5 +1,6 @@
 import {useLocation} from "react-router-dom";
-import Header, {useAuth} from "./Header";
+import Header from "./Header";
+import {useAuth} from "@/context/AuthContext";
 import Footer from "./Footer";
 import DatabaseSearch from "../pages/DatabaseSearch";
 

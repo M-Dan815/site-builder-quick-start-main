@@ -9,13 +9,22 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import {Mail, Phone, MapPin} from "lucide-react";
+import {Mail, Phone, MapPin, Check} from "lucide-react";
 import {useToast} from "@/components/ui/use-toast";
 const BASE_URL = import.meta.env.VITE_API_URL;
 const ContactSection = () => {
 	const [email, setEmail] = useState("");
 	const [loading, setLoading] = useState(false);
+	const [requestSent, setRequestSent] = useState(false);
 	const {toast} = useToast();
+
+	const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		setEmail(e.target.value);
+		// Reset the sent state when user starts typing again
+		if (requestSent) {
+			setRequestSent(false);
+		}
+	};
 
 	const handleSubscribe = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -30,6 +39,7 @@ const ContactSection = () => {
 		}
 
 		setLoading(true);
+		setRequestSent(false);
 		try {
 			const res = await fetch(`${BASE_URL}/api/request-demo`, {
 				method: "POST",
@@ -42,6 +52,7 @@ const ContactSection = () => {
 			const data = await res.json();
 
 			if (res.ok) {
+				setRequestSent(true);
 				toast({
 					title: "Request sent!",
 					description: "We'll reach out shortly about your demo access.",
@@ -117,7 +128,7 @@ const ContactSection = () => {
 										id="email"
 										type="email"
 										value={email}
-										onChange={(e) => setEmail(e.target.value)}
+										onChange={handleEmailChange}
 										placeholder="your@company.com"
 										className="bg-gray-700 border-gray-600 text-white"
 										required
@@ -125,10 +136,23 @@ const ContactSection = () => {
 								</div>
 								<Button
 									type="submit"
-									disabled={loading}
-									className="w-full bg-blue-600 hover:bg-blue-700"
+									disabled={loading || requestSent}
+									className={`w-full transition-all duration-300 ${
+										requestSent
+											? "bg-green-600 hover:bg-green-600 cursor-default"
+											: "bg-blue-600 hover:bg-blue-700"
+									}`}
 								>
-									{loading ? "Sending..." : "Request Demo"}
+									{loading ? (
+										"Sending..."
+									) : requestSent ? (
+										<span className="flex items-center justify-center gap-2">
+											<Check className="h-5 w-5" />
+											Request Sent
+										</span>
+									) : (
+										"Request Demo"
+									)}
 								</Button>
 							</form>
 						</CardContent>

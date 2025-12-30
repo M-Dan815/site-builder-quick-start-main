@@ -1,4 +1,4 @@
-import {Mail, Phone, MessageCircle} from "lucide-react";
+import {Mail, Phone, MessageCircle, Check} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Textarea} from "@/components/ui/textarea";
@@ -21,6 +21,7 @@ const ContactSupport = () => {
 	});
 
 	const [loading, setLoading] = useState(false);
+	const [messageSent, setMessageSent] = useState(false);
 	const [status, setStatus] = useState<{
 		success: boolean;
 		message: string;
@@ -34,6 +35,11 @@ const ContactSupport = () => {
 			...formData,
 			[e.target.name]: e.target.value,
 		});
+		// Reset the sent state when user starts typing again
+		if (messageSent) {
+			setMessageSent(false);
+			setStatus(null);
+		}
 	};
 
 	// Submit form
@@ -41,6 +47,7 @@ const ContactSupport = () => {
 		e.preventDefault();
 		setLoading(true);
 		setStatus(null);
+		setMessageSent(false);
 
 		try {
 			const res = await fetch(`${BASE_URL}/api/give-feedback`, {
@@ -54,6 +61,7 @@ const ContactSupport = () => {
 			const data = await res.json();
 
 			if (res.ok) {
+				setMessageSent(true);
 				setStatus({
 					success: true,
 					message: "✅ Your message has been sent successfully!",
@@ -135,15 +143,28 @@ const ContactSupport = () => {
 									/>
 									<Button
 										type="submit"
-										className="w-full bg-blue-600 hover:bg-blue-700"
-										disabled={loading}
+										className={`w-full transition-all duration-300 ${
+											messageSent
+												? "bg-green-600 hover:bg-green-600 cursor-default"
+												: "bg-blue-600 hover:bg-blue-700"
+										}`}
+										disabled={loading || messageSent}
 									>
-										{loading ? "Sending..." : "Send Message"}
+										{loading ? (
+											"Sending..."
+										) : messageSent ? (
+											<span className="flex items-center justify-center gap-2">
+												<Check className="h-5 w-5" />
+												Message Sent
+											</span>
+										) : (
+											"Send Message"
+										)}
 									</Button>
 								</form>
 
 								{/* Feedback messages */}
-								{status && (
+								{status && !messageSent && (
 									<p
 										className={`mt-4 text-center ${
 											status.success ? "text-green-400" : "text-red-400"
@@ -194,27 +215,6 @@ const ContactSupport = () => {
 									>
 										+1 (555) 123-4567
 									</a>
-								</CardContent>
-							</Card>
-
-							<Card className="bg-gray-800 border-gray-700">
-								<CardHeader>
-									<CardTitle className="text-white flex items-center">
-										<MessageCircle className="h-5 w-5 mr-2 text-blue-400" />
-										Live Chat
-									</CardTitle>
-								</CardHeader>
-								<CardContent>
-									<p className="text-gray-400 mb-4">
-										Get instant help with our live chat support during business
-										hours.
-									</p>
-									<Button
-										variant="outline"
-										className="border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-gray-900"
-									>
-										Start Live Chat
-									</Button>
 								</CardContent>
 							</Card>
 						</div>

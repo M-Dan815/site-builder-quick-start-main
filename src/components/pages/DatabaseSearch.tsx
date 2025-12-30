@@ -73,8 +73,8 @@ interface SortOption {
 	direction: "asc" | "desc";
 }
 
-const BACKEND_URL = import.meta.env.VITE_API_URL; // backend base
-const MODULE_ID = 1; // module ID for users
+const BACKEND_URL = import.meta.env.VITE_API_URL;
+const MODULE_ID = 1;
 const TABLE_PREFIX = "users__";
 
 const fieldMap: Record<string, string> = {
@@ -82,6 +82,20 @@ const fieldMap: Record<string, string> = {
 	"github-stars": "star_count",
 	"github-repos": "repo_count",
 	"twitter-followers": "twitter_follower_count",
+};
+
+const DEFAULT_COLUMN_VISIBILITY: ColumnVisibility = {
+	skills: true,
+	github: true,
+	linkedin: true,
+	twitter: true,
+	contact: true,
+};
+
+const DEFAULT_GITHUB_VISIBILITY: GitHubVisibility = {
+	followers: true,
+	stars: true,
+	repositories: true,
 };
 
 const DatabaseSearch = () => {
@@ -98,17 +112,11 @@ const DatabaseSearch = () => {
 	const [totalPages, setTotalPages] = useState(1);
 
 	const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({
-		skills: true,
-		github: true,
-		linkedin: true,
-		twitter: true,
-		contact: true,
+		...DEFAULT_COLUMN_VISIBILITY,
 	});
 
 	const [githubVisibility, setGithubVisibility] = useState<GitHubVisibility>({
-		followers: true,
-		stars: true,
-		repositories: true,
+		...DEFAULT_GITHUB_VISIBILITY,
 	});
 
 	const {toast} = useToast();
@@ -186,10 +194,18 @@ const DatabaseSearch = () => {
 		}
 	};
 
+	const triggerNewSearch = () => {
+		if (currentPage === 1) {
+			handleSearch();
+		} else {
+			setCurrentPage(1);
+		}
+	};
+
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
 		if (e.key === "Enter") {
 			e.preventDefault();
-			handleSearch();
+			triggerNewSearch();
 		}
 	};
 
@@ -199,7 +215,15 @@ const DatabaseSearch = () => {
 		setLocationFilter("");
 		setSortOption(null);
 		setCurrentPage(1);
-		handleSearch();
+		setTimeout(() => {
+			handleSearch();
+		}, 0);
+	};
+
+	const resetToDefault = () => {
+		setColumnVisibility({...DEFAULT_COLUMN_VISIBILITY});
+		setGithubVisibility({...DEFAULT_GITHUB_VISIBILITY});
+		setSortOption(null);
 	};
 
 	const toggleColumn = (column: keyof ColumnVisibility) => {
@@ -230,6 +254,101 @@ const DatabaseSearch = () => {
 	};
 
 	const handlePageChange = (page: number) => setCurrentPage(page);
+
+	const renderPaginationItems = () => {
+		const items = [];
+
+		items.push(
+			<PaginationItem key={1}>
+				<PaginationLink
+					onClick={() => handlePageChange(1)}
+					isActive={currentPage === 1}
+					className={`cursor-pointer ${
+						currentPage === 1
+							? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+							: ""
+					}`}
+				>
+					1
+				</PaginationLink>
+			</PaginationItem>
+		);
+
+		if (currentPage > 3) {
+			items.push(
+				<PaginationItem key="ellipsis-start">
+					<span className="px-3 text-gray-400">...</span>
+				</PaginationItem>
+			);
+		}
+
+		if (currentPage > 2) {
+			items.push(
+				<PaginationItem key={currentPage - 1}>
+					<PaginationLink
+						onClick={() => handlePageChange(currentPage - 1)}
+						className="cursor-pointer"
+					>
+						{currentPage - 1}
+					</PaginationLink>
+				</PaginationItem>
+			);
+		}
+
+		if (currentPage !== 1 && currentPage !== totalPages) {
+			items.push(
+				<PaginationItem key={currentPage}>
+					<PaginationLink
+						isActive
+						className="cursor-pointer bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+					>
+						{currentPage}
+					</PaginationLink>
+				</PaginationItem>
+			);
+		}
+
+		if (currentPage < totalPages - 1) {
+			items.push(
+				<PaginationItem key={currentPage + 1}>
+					<PaginationLink
+						onClick={() => handlePageChange(currentPage + 1)}
+						className="cursor-pointer"
+					>
+						{currentPage + 1}
+					</PaginationLink>
+				</PaginationItem>
+			);
+		}
+
+		if (currentPage < totalPages - 2) {
+			items.push(
+				<PaginationItem key="ellipsis-end">
+					<span className="px-3 text-gray-400">...</span>
+				</PaginationItem>
+			);
+		}
+
+		if (totalPages > 1) {
+			items.push(
+				<PaginationItem key={totalPages}>
+					<PaginationLink
+						onClick={() => handlePageChange(totalPages)}
+						isActive={currentPage === totalPages}
+						className={`cursor-pointer ${
+							currentPage === totalPages
+								? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+								: ""
+						}`}
+					>
+						{totalPages}
+					</PaginationLink>
+				</PaginationItem>
+			);
+		}
+
+		return items;
+	};
 
 	return (
 		<div className="min-h-screen bg-gray-900 text-white p-6">
@@ -272,7 +391,7 @@ const DatabaseSearch = () => {
 						/>
 						<div className="flex space-x-2">
 							<Button
-								onClick={handleSearch}
+								onClick={triggerNewSearch}
 								className="bg-blue-600 hover:bg-blue-700"
 							>
 								<Filter className="h-4 w-4 mr-2" />
@@ -281,10 +400,205 @@ const DatabaseSearch = () => {
 							<Button
 								onClick={resetFilters}
 								variant="outline"
-								className="border-gray-600 text-gray-300 hover:bg-gray-700"
+								className="border-gray-600 bg-blue-600 hover:bg-blue-700"
 							>
 								Reset
 							</Button>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										variant="outline"
+										className="border-gray-600 text-gray-300 bg-gray-800 hover:bg-gray-700"
+									>
+										<Filter className="h-4 w-4 mr-2" />
+										Filters
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent className="w-80 bg-gray-800 border-gray-700">
+									<DropdownMenuLabel className="text-gray-300">
+										Toggle Columns
+									</DropdownMenuLabel>
+									<DropdownMenuSeparator className="bg-gray-700" />
+
+									{/* Skills */}
+									<div className="flex items-center space-x-2 px-2 py-1.5 hover:bg-gray-700 rounded">
+										<Checkbox
+											id="skills"
+											checked={columnVisibility.skills}
+											onCheckedChange={() => toggleColumn("skills")}
+											className="border-gray-500"
+										/>
+										<label
+											htmlFor="skills"
+											className="text-sm text-gray-300 capitalize cursor-pointer flex-1"
+										>
+											Skills
+										</label>
+									</div>
+
+									{/* Twitter */}
+									<div className="flex items-center space-x-2 px-2 py-1.5 hover:bg-gray-700 rounded">
+										<Checkbox
+											id="twitter"
+											checked={columnVisibility.twitter}
+											onCheckedChange={() => toggleColumn("twitter")}
+											className="border-gray-500"
+										/>
+										<label
+											htmlFor="twitter"
+											className="text-sm text-gray-300 capitalize cursor-pointer flex-1"
+										>
+											Twitter
+										</label>
+									</div>
+
+									{/* Contact */}
+									<div className="flex items-center space-x-2 px-2 py-1.5 hover:bg-gray-700 rounded">
+										<Checkbox
+											id="contact"
+											checked={columnVisibility.contact}
+											onCheckedChange={() => toggleColumn("contact")}
+											className="border-gray-500"
+										/>
+										<label
+											htmlFor="contact"
+											className="text-sm text-gray-300 capitalize cursor-pointer flex-1"
+										>
+											Contact
+										</label>
+									</div>
+
+									{/* GitHub Section */}
+									<DropdownMenuSeparator className="bg-gray-700" />
+									<div className="px-2 py-1.5">
+										<div className="flex items-center space-x-2 hover:bg-gray-700 rounded p-1">
+											<Checkbox
+												id="github"
+												checked={columnVisibility.github}
+												onCheckedChange={() => toggleColumn("github")}
+												className="border-gray-500"
+											/>
+											<label
+												htmlFor="github"
+												className="text-sm text-gray-300 cursor-pointer flex-1 font-medium"
+											>
+												GitHub
+											</label>
+										</div>
+										{columnVisibility.github && (
+											<div className="ml-6 space-y-1 mt-2">
+												<div className="flex items-center space-x-2 hover:bg-gray-700 rounded p-1">
+													<Checkbox
+														id="github-followers"
+														checked={githubVisibility.followers}
+														onCheckedChange={() =>
+															toggleGithubField("followers")
+														}
+														className="border-gray-500"
+													/>
+													<label
+														htmlFor="github-followers"
+														className="text-sm text-gray-400 cursor-pointer flex-1"
+													>
+														Followers
+													</label>
+												</div>
+												<div className="flex items-center space-x-2 hover:bg-gray-700 rounded p-1">
+													<Checkbox
+														id="github-stars"
+														checked={githubVisibility.stars}
+														onCheckedChange={() => toggleGithubField("stars")}
+														className="border-gray-500"
+													/>
+													<label
+														htmlFor="github-stars"
+														className="text-sm text-gray-400 cursor-pointer flex-1"
+													>
+														Stars
+													</label>
+												</div>
+												<div className="flex items-center space-x-2 hover:bg-gray-700 rounded p-1">
+													<Checkbox
+														id="github-repos"
+														checked={githubVisibility.repositories}
+														onCheckedChange={() =>
+															toggleGithubField("repositories")
+														}
+														className="border-gray-500"
+													/>
+													<label
+														htmlFor="github-repos"
+														className="text-sm text-gray-400 cursor-pointer flex-1"
+													>
+														Repos
+													</label>
+												</div>
+											</div>
+										)}
+									</div>
+
+									{/* LinkedIn Section */}
+									<DropdownMenuSeparator className="bg-gray-700" />
+									<div className="px-2 py-1.5">
+										<div className="flex items-center space-x-2 hover:bg-gray-700 rounded p-1">
+											<Checkbox
+												id="linkedin"
+												checked={columnVisibility.linkedin}
+												onCheckedChange={() => toggleColumn("linkedin")}
+												className="border-gray-500"
+											/>
+											<label
+												htmlFor="linkedin"
+												className="text-sm text-gray-300 cursor-pointer flex-1 font-medium"
+											>
+												LinkedIn
+											</label>
+										</div>
+									</div>
+
+									{/* Sort Section */}
+									<DropdownMenuSeparator className="bg-gray-700" />
+									<DropdownMenuLabel className="text-gray-300">
+										Sort By
+									</DropdownMenuLabel>
+									<div className="px-2 py-1.5 space-y-1">
+										{[
+											{field: "github-followers", label: "GitHub Followers"},
+											{field: "github-stars", label: "GitHub Stars"},
+											{field: "github-repos", label: "GitHub Repos"},
+											{field: "twitter-followers", label: "Twitter Followers"},
+										].map(({field, label}) => (
+											<button
+												key={field}
+												onClick={() => handleSort(field)}
+												className={`w-full text-left px-2 py-1 rounded text-sm hover:bg-gray-700 flex items-center justify-between ${
+													sortOption?.field === field
+														? "bg-gray-700 text-blue-400"
+														: "text-gray-300"
+												}`}
+											>
+												<span>{label}</span>
+												{sortOption?.field === field && (
+													<span className="text-xs">
+														{sortOption.direction === "desc" ? "↓" : "↑"}
+													</span>
+												)}
+											</button>
+										))}
+									</div>
+
+									{/* Reset Section */}
+									<DropdownMenuSeparator className="bg-gray-700" />
+									<div className="px-2 py-1.5">
+										<button
+											onClick={resetToDefault}
+											className="w-full text-left px-2 py-1 rounded text-sm hover:bg-gray-700 text-red-400 hover:text-red-300"
+										>
+											Reset to Default
+										</button>
+									</div>
+								</DropdownMenuContent>
+							</DropdownMenu>
 						</div>
 					</div>
 
@@ -382,7 +696,6 @@ const DatabaseSearch = () => {
 											</TableCell>
 										)}
 
-										{/* GitHub */}
 										{columnVisibility.github && (
 											<TableCell>
 												{dev.githubUrl &&
@@ -424,7 +737,6 @@ const DatabaseSearch = () => {
 											</TableCell>
 										)}
 
-										{/* LinkedIn */}
 										{columnVisibility.linkedin && (
 											<TableCell>
 												{dev.socialMedia.linkedin.url ? (
@@ -445,7 +757,6 @@ const DatabaseSearch = () => {
 											</TableCell>
 										)}
 
-										{/* Twitter */}
 										{columnVisibility.twitter && (
 											<TableCell>
 												{dev.socialMedia.twitter.url ? (
@@ -471,7 +782,6 @@ const DatabaseSearch = () => {
 											</TableCell>
 										)}
 
-										{/* ✅ Updated Contact */}
 										{columnVisibility.contact && (
 											<TableCell>
 												{dev.email && dev.email.trim() !== "" ? (
@@ -551,16 +861,9 @@ const DatabaseSearch = () => {
 									}`}
 								/>
 							</PaginationItem>
-							{Array.from({length: totalPages}, (_, i) => (
-								<PaginationItem key={i}>
-									<PaginationLink
-										onClick={() => handlePageChange(i + 1)}
-										isActive={currentPage === i + 1}
-									>
-										{i + 1}
-									</PaginationLink>
-								</PaginationItem>
-							))}
+
+							{renderPaginationItems()}
+
 							<PaginationItem>
 								<PaginationNext
 									onClick={() =>
