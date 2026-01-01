@@ -19,12 +19,10 @@ jobs:
           ssh-private-key: ${{ secrets.DROPLET_SSH_KEY }}
 
       - name: Build Docker image
-        run: |
-          docker build -t frontend-app .
+        run: docker build -t frontend-app .
 
       - name: Save Docker image as tar
-        run: |
-          docker save frontend-app | gzip > frontend-app.tar.gz
+        run: docker save frontend-app | gzip > frontend-app.tar.gz
 
       - name: Copy image to droplet
         run: |
@@ -32,7 +30,7 @@ jobs:
 
       - name: Deploy Docker container
         run: |
-          ssh -o StrictHostKeyChecking=no root@${{ secrets.DROPLET_IP }} << 'EOF'
+          ssh root@${{ secrets.DROPLET_IP }} << 'EOF'
             cd $FRONTEND_PATH
             docker load < frontend-app.tar.gz
             docker stop frontend || true
