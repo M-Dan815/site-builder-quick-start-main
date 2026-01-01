@@ -3,7 +3,7 @@ name: Deploy Frontend
 on:
   push:
     branches:
-      - main
+      - main # deploy only on main branch
 
 jobs:
   deploy:
@@ -19,19 +19,25 @@ jobs:
           ssh-private-key: ${{ secrets.DROPLET_SSH_KEY }}
 
       - name: Build Docker image
-        run: docker build -t frontend-app .
+        run: |
+          docker build -t frontend-app .
 
       - name: Save Docker image as tar
-        run: docker save frontend-app | gzip > frontend-app.tar.gz
+        run: |
+          docker save frontend-app | gzip > frontend-app.tar.gz
+
+      - name: Create deploy directory on droplet
+        run: |
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.DROPLET_IP }} "mkdir -p /root/frontend"
 
       - name: Copy image to droplet
         run: |
-          scp -o StrictHostKeyChecking=no frontend-app.tar.gz root@${{ secrets.DROPLET_IP }}:${{ secrets.FRONTEND_PATH }}/
+          scp -o StrictHostKeyChecking=no frontend-app.tar.gz root@${{ secrets.DROPLET_IP }}:/root/frontend/
 
       - name: Deploy Docker container
         run: |
-          ssh root@${{ secrets.DROPLET_IP }} << 'EOF'
-            cd $FRONTEND_PATH
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.DROPLET_IP }} << 'EOF'
+            cd /root/frontend
             docker load < frontend-app.tar.gz
             docker stop frontend || true
             docker rm frontend || true
