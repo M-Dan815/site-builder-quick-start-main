@@ -26,18 +26,15 @@ jobs:
         run: |
           docker save frontend-app | gzip > frontend-app.tar.gz
 
-      - name: Create deploy directory on droplet
-        run: |
-          ssh -o StrictHostKeyChecking=no root@${{ secrets.DROPLET_IP }} "mkdir -p /root/frontend"
-
       - name: Copy image to droplet
         run: |
-          scp -o StrictHostKeyChecking=no frontend-app.tar.gz root@${{ secrets.DROPLET_IP }}:/root/frontend/
+          scp -o StrictHostKeyChecking=no frontend-app.tar.gz root@${{ secrets.DROPLET_IP }}:${{ secrets.FRONTEND_PATH }}/
 
       - name: Deploy Docker container
         run: |
           ssh -o StrictHostKeyChecking=no root@${{ secrets.DROPLET_IP }} << 'EOF'
-            cd /root/frontend
+            mkdir -p $FRONTEND_PATH
+            cd $FRONTEND_PATH
             docker load < frontend-app.tar.gz
             docker stop frontend || true
             docker rm frontend || true
