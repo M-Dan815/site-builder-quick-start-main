@@ -34,13 +34,13 @@ jobs:
       - name: Prepare droplet directory
         run: |
           ssh -o StrictHostKeyChecking=no root@${{ secrets.DROPLET_IP }} \
-            "mkdir -p ${{ secrets.FRONTEND_PATH }}"
+            "mkdir -p ${{ secrets.APP_PATH }}"
 
       # 6️⃣ Copy image to droplet
       - name: Copy image to droplet
         run: |
           scp -o StrictHostKeyChecking=no frontend-app.tar.gz \
-            root@${{ secrets.DROPLET_IP }}:${{ secrets.FRONTEND_PATH }}/
+            root@${{ secrets.DROPLET_IP }}:${{ secrets.APP_PATH }}/
 
       # 7️⃣ Deploy container
       - name: Deploy Docker container
@@ -48,7 +48,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no root@${{ secrets.DROPLET_IP }} << EOF
             set -e
 
-            cd ${{ secrets.FRONTEND_PATH }}
+            cd ${{ secrets.APP_PATH }}
 
             echo "📦 Loading Docker image..."
             docker load < frontend-app.tar.gz
