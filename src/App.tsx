@@ -9,6 +9,7 @@ import ContactSupport from "./pages/ContactSupport";
 import NotFound from "./pages/NotFound";
 import SignInPage from "./components/pages/SignInPage";
 import {AuthProvider} from "@/context/AuthContext";
+import TermsAndPolicies from "./pages/TermsAndPolicies";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
 						<Route path="/contact-support" element={<ContactSupport />} />
 						<Route path="/sign-in" element={<SignInPage />} />
 						<Route path="*" element={<NotFound />} />
+						<Route path="/terms-and-policies" element={<TermsAndPolicies />} />
 					</Routes>
 				</BrowserRouter>
 			</TooltipProvider>
