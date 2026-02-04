@@ -92,7 +92,7 @@ const TermsAndPolicies = () => {
 							CodePark Terms & Policies
 						</h1>
 						<p className="text-gray-400">
-							Last Updated: December 24, 2025 • Version 1.0
+							Last Updated: January 30, 2026 • Version 1.1
 						</p>
 					</div>
 

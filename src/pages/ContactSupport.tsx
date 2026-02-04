@@ -29,7 +29,7 @@ const ContactSupport = () => {
 
 	// Update form fields
 	const handleInputChange = (
-		e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+		e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
 	) => {
 		setFormData({
 			...formData,
@@ -193,7 +193,7 @@ const ContactSupport = () => {
 										href="mailto:support@devsource.com"
 										className="text-blue-400 hover:text-blue-300"
 									>
-										support@devsource.com
+										support@codepark.net
 									</a>
 								</CardContent>
 							</Card>
@@ -213,7 +213,7 @@ const ContactSupport = () => {
 										href="tel:+1-555-123-4567"
 										className="text-blue-400 hover:text-blue-300"
 									>
-										+1 (555) 123-4567
+										1 (800) 940-6916
 									</a>
 								</CardContent>
 							</Card>

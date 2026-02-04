@@ -9,6 +9,8 @@ import {
 	Linkedin,
 	Twitter,
 	ExternalLink,
+	FileText,
+	BookOpen,
 } from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
@@ -43,6 +45,12 @@ import {
 	PaginationNext,
 	PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {Developer} from "@/types";
 import {useToast} from "@/components/ui/use-toast";
 
@@ -52,6 +60,8 @@ interface ExtendedDeveloper extends Developer {
 		linkedin: {url: string};
 		twitter: {followers: number; url?: string};
 	};
+	bio: string;
+	profileReadme: string;
 }
 
 interface ColumnVisibility {
@@ -60,6 +70,8 @@ interface ColumnVisibility {
 	linkedin: boolean;
 	twitter: boolean;
 	contact: boolean;
+	bio: boolean;
+	readme: boolean;
 }
 
 interface GitHubVisibility {
@@ -90,12 +102,69 @@ const DEFAULT_COLUMN_VISIBILITY: ColumnVisibility = {
 	linkedin: true,
 	twitter: true,
 	contact: true,
+	bio: false,
+	readme: false,
 };
 
 const DEFAULT_GITHUB_VISIBILITY: GitHubVisibility = {
 	followers: true,
 	stars: true,
 	repositories: true,
+};
+
+// Component for truncated text with tooltip on hover
+const TruncatedTextWithTooltip = ({
+	text,
+	maxLength = 100,
+	icon: Icon,
+}: {
+	text: string;
+	maxLength?: number;
+	icon?: React.ElementType;
+}) => {
+	if (!text || text.trim() === "") {
+		return <span className="text-gray-500 text-sm italic">Not provided</span>;
+	}
+
+	const shouldTruncate = text.length > maxLength;
+	const truncatedText = shouldTruncate
+		? text.slice(0, maxLength) + "..."
+		: text;
+
+	if (!shouldTruncate) {
+		return (
+			<p className="text-sm text-gray-300 whitespace-pre-wrap break-words">
+				{text}
+			</p>
+		);
+	}
+
+	return (
+		<TooltipProvider delayDuration={200}>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<div className="cursor-help">
+						<p className="text-sm text-gray-300 line-clamp-3">
+							{truncatedText}
+						</p>
+						{Icon && (
+							<span className="text-blue-400 text-xs mt-1 flex items-center">
+								<Icon className="h-3 w-3 mr-1" />
+								Hover to see full content
+							</span>
+						)}
+					</div>
+				</TooltipTrigger>
+				<TooltipContent
+					className="max-w-md max-h-96 overflow-y-auto bg-gray-900 border-gray-600 text-gray-100 p-4"
+					side="top"
+					align="start"
+				>
+					<div className="whitespace-pre-wrap break-words text-sm">{text}</div>
+				</TooltipContent>
+			</Tooltip>
+		</TooltipProvider>
+	);
 };
 
 const DatabaseSearch = () => {
@@ -138,6 +207,8 @@ const DatabaseSearch = () => {
 		experience: 0,
 		location: item[`${TABLE_PREFIX}city`] || "",
 		githubUrl: `https://github.com/${item[`${TABLE_PREFIX}username`] || ""}`,
+		bio: item[`${TABLE_PREFIX}bio`] || "",
+		profileReadme: item[`${TABLE_PREFIX}profile_readme`] || "",
 		socialMedia: {
 			github: {
 				followers: item[`${TABLE_PREFIX}follower_count`] || 0,
@@ -244,7 +315,7 @@ const DatabaseSearch = () => {
 		setSortOption((prev) =>
 			prev?.field === field
 				? {field, direction: prev.direction === "asc" ? "desc" : "asc"}
-				: {field, direction: "desc"}
+				: {field, direction: "desc"},
 		);
 	};
 
@@ -271,14 +342,14 @@ const DatabaseSearch = () => {
 				>
 					1
 				</PaginationLink>
-			</PaginationItem>
+			</PaginationItem>,
 		);
 
 		if (currentPage > 3) {
 			items.push(
 				<PaginationItem key="ellipsis-start">
 					<span className="px-3 text-gray-400">...</span>
-				</PaginationItem>
+				</PaginationItem>,
 			);
 		}
 
@@ -291,7 +362,7 @@ const DatabaseSearch = () => {
 					>
 						{currentPage - 1}
 					</PaginationLink>
-				</PaginationItem>
+				</PaginationItem>,
 			);
 		}
 
@@ -304,7 +375,7 @@ const DatabaseSearch = () => {
 					>
 						{currentPage}
 					</PaginationLink>
-				</PaginationItem>
+				</PaginationItem>,
 			);
 		}
 
@@ -317,7 +388,7 @@ const DatabaseSearch = () => {
 					>
 						{currentPage + 1}
 					</PaginationLink>
-				</PaginationItem>
+				</PaginationItem>,
 			);
 		}
 
@@ -325,7 +396,7 @@ const DatabaseSearch = () => {
 			items.push(
 				<PaginationItem key="ellipsis-end">
 					<span className="px-3 text-gray-400">...</span>
-				</PaginationItem>
+				</PaginationItem>,
 			);
 		}
 
@@ -343,12 +414,43 @@ const DatabaseSearch = () => {
 					>
 						{totalPages}
 					</PaginationLink>
-				</PaginationItem>
+				</PaginationItem>,
 			);
 		}
 
 		return items;
 	};
+
+	// Helper to display active search terms as tags
+	const getActiveFilters = () => {
+		const filters: {type: string; values: string[]}[] = [];
+
+		if (searchTerm) {
+			const terms = searchTerm
+				.split(",")
+				.map((t) => t.trim())
+				.filter((t) => t);
+			if (terms.length > 0) filters.push({type: "Search", values: terms});
+		}
+		if (selectedSkill) {
+			const terms = selectedSkill
+				.split(",")
+				.map((t) => t.trim())
+				.filter((t) => t);
+			if (terms.length > 0) filters.push({type: "Skills", values: terms});
+		}
+		if (locationFilter) {
+			const terms = locationFilter
+				.split(",")
+				.map((t) => t.trim())
+				.filter((t) => t);
+			if (terms.length > 0) filters.push({type: "Location", values: terms});
+		}
+
+		return filters;
+	};
+
+	const activeFilters = getActiveFilters();
 
 	return (
 		<div className="min-h-screen bg-gray-900 text-white p-6">
@@ -368,7 +470,7 @@ const DatabaseSearch = () => {
 						<div className="relative">
 							<Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
 							<Input
-								placeholder="Search by name, email, or skill..."
+								placeholder="Search name, email, bio, readme... (comma for multiple)"
 								value={searchTerm}
 								onChange={(e) => setSearchTerm(e.target.value)}
 								onKeyDown={handleKeyDown}
@@ -376,14 +478,14 @@ const DatabaseSearch = () => {
 							/>
 						</div>
 						<Input
-							placeholder="Filter by skill"
+							placeholder="Skills (e.g., Python, JavaScript)"
 							value={selectedSkill}
 							onChange={(e) => setSelectedSkill(e.target.value)}
 							onKeyDown={handleKeyDown}
 							className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
 						/>
 						<Input
-							placeholder="Filter by location"
+							placeholder="Location (e.g., Toronto, Vancouver)"
 							value={locationFilter}
 							onChange={(e) => setLocationFilter(e.target.value)}
 							onKeyDown={handleKeyDown}
@@ -414,7 +516,7 @@ const DatabaseSearch = () => {
 										Filters
 									</Button>
 								</DropdownMenuTrigger>
-								<DropdownMenuContent className="w-80 bg-gray-800 border-gray-700">
+								<DropdownMenuContent className="w-80 bg-gray-800 border-gray-700 max-h-[80vh] overflow-y-auto">
 									<DropdownMenuLabel className="text-gray-300">
 										Toggle Columns
 									</DropdownMenuLabel>
@@ -465,6 +567,40 @@ const DatabaseSearch = () => {
 											className="text-sm text-gray-300 capitalize cursor-pointer flex-1"
 										>
 											Contact
+										</label>
+									</div>
+
+									{/* Bio */}
+									<div className="flex items-center space-x-2 px-2 py-1.5 hover:bg-gray-700 rounded">
+										<Checkbox
+											id="bio"
+											checked={columnVisibility.bio}
+											onCheckedChange={() => toggleColumn("bio")}
+											className="border-gray-500"
+										/>
+										<label
+											htmlFor="bio"
+											className="text-sm text-gray-300 cursor-pointer flex-1 flex items-center"
+										>
+											<FileText className="h-3 w-3 mr-1" />
+											Bio
+										</label>
+									</div>
+
+									{/* ReadMe */}
+									<div className="flex items-center space-x-2 px-2 py-1.5 hover:bg-gray-700 rounded">
+										<Checkbox
+											id="readme"
+											checked={columnVisibility.readme}
+											onCheckedChange={() => toggleColumn("readme")}
+											className="border-gray-500"
+										/>
+										<label
+											htmlFor="readme"
+											className="text-sm text-gray-300 cursor-pointer flex-1 flex items-center"
+										>
+											<BookOpen className="h-3 w-3 mr-1" />
+											ReadMe
 										</label>
 									</div>
 
@@ -602,6 +738,36 @@ const DatabaseSearch = () => {
 						</div>
 					</div>
 
+					{/* Active Filters Display */}
+					{activeFilters.length > 0 && (
+						<div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-700">
+							<span className="text-gray-400 text-sm">Active filters:</span>
+							{activeFilters.map((filter) => (
+								<div key={filter.type} className="flex items-center gap-1">
+									<span className="text-gray-500 text-xs">{filter.type}:</span>
+									{filter.values.map((value, idx) => (
+										<span
+											key={`${filter.type}-${idx}`}
+											className="px-2 py-0.5 bg-blue-600/30 text-blue-300 rounded text-xs flex items-center"
+										>
+											{value}
+											{idx < filter.values.length - 1 && (
+												<span className="ml-1 text-blue-400">+</span>
+											)}
+										</span>
+									))}
+								</div>
+							))}
+						</div>
+					)}
+
+					{/* Search Tips */}
+					<div className="text-xs text-gray-500 mt-3">
+						💡 Tip: Use commas to search multiple terms. Search looks through
+						name, email, skills, bio, and readme (e.g., "healthcare, AI" finds
+						developers with both terms)
+					</div>
+
 					<div className="flex items-center justify-between mt-4">
 						<div className="flex items-center space-x-2">
 							<span className="text-gray-300 text-sm">Show</span>
@@ -630,7 +796,7 @@ const DatabaseSearch = () => {
 							Showing {(currentPage - 1) * entriesPerPage + 1} to{" "}
 							{Math.min(
 								(currentPage - 1) * entriesPerPage + filteredDevelopers.length,
-								totalEntries
+								totalEntries,
 							)}{" "}
 							of {totalEntries} entries
 						</div>
@@ -645,59 +811,86 @@ const DatabaseSearch = () => {
 					</div>
 
 					<div className="overflow-x-auto">
-						<Table>
+						<Table className="table-fixed w-full">
 							<TableHeader>
 								<TableRow className="border-gray-700">
-									<TableHead className="text-gray-300">Developer</TableHead>
+									<TableHead className="text-gray-300 w-48">
+										Developer
+									</TableHead>
 									{columnVisibility.skills && (
-										<TableHead className="text-gray-300">Skills</TableHead>
+										<TableHead className="text-gray-300 w-40">Skills</TableHead>
 									)}
 									{columnVisibility.github && (
-										<TableHead className="text-gray-300">GitHub</TableHead>
+										<TableHead className="text-gray-300 w-36">GitHub</TableHead>
 									)}
 									{columnVisibility.linkedin && (
-										<TableHead className="text-gray-300">LinkedIn</TableHead>
+										<TableHead className="text-gray-300 w-28">
+											LinkedIn
+										</TableHead>
 									)}
 									{columnVisibility.twitter && (
-										<TableHead className="text-gray-300">Twitter</TableHead>
+										<TableHead className="text-gray-300 w-32">
+											Twitter
+										</TableHead>
 									)}
 									{columnVisibility.contact && (
-										<TableHead className="text-gray-300">Email</TableHead>
+										<TableHead className="text-gray-300 w-28">Email</TableHead>
+									)}
+									{columnVisibility.bio && (
+										<TableHead className="text-gray-300 w-64">
+											<span className="flex items-center">
+												<FileText className="h-4 w-4 mr-1" />
+												Bio
+											</span>
+										</TableHead>
+									)}
+									{columnVisibility.readme && (
+										<TableHead className="text-gray-300 w-64">
+											<span className="flex items-center">
+												<BookOpen className="h-4 w-4 mr-1" />
+												ReadMe
+											</span>
+										</TableHead>
 									)}
 								</TableRow>
 							</TableHeader>
 							<TableBody>
 								{filteredDevelopers.map((dev) => (
 									<TableRow key={dev.id} className="border-gray-700">
-										<TableCell>
+										<TableCell className="align-top">
 											<div className="flex flex-col">
-												<span className="font-medium text-white">
+												<span className="font-medium text-white truncate">
 													{dev.name}
 												</span>
 												<div className="flex items-center text-gray-400 text-sm mt-1">
-													<MapPin className="h-3 w-3 mr-1" />
-													{dev.location}
+													<MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+													<span className="truncate">{dev.location}</span>
 												</div>
 											</div>
 										</TableCell>
 
 										{columnVisibility.skills && (
-											<TableCell>
-												<div className="flex flex-wrap gap-1">
-													{dev.skills.map((s) => (
+											<TableCell className="align-top">
+												<div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+													{dev.skills.slice(0, 5).map((s) => (
 														<span
 															key={s}
-															className="px-2 py-1 bg-blue-600/20 text-blue-300 rounded text-xs"
+															className="px-2 py-1 bg-blue-600/20 text-blue-300 rounded text-xs whitespace-nowrap"
 														>
 															{s}
 														</span>
 													))}
+													{dev.skills.length > 5 && (
+														<span className="px-2 py-1 bg-gray-600/20 text-gray-400 rounded text-xs">
+															+{dev.skills.length - 5} more
+														</span>
+													)}
 												</div>
 											</TableCell>
 										)}
 
 										{columnVisibility.github && (
-											<TableCell>
+											<TableCell className="align-top">
 												{dev.githubUrl &&
 												dev.githubUrl !== "https://github.com/" ? (
 													<>
@@ -705,12 +898,13 @@ const DatabaseSearch = () => {
 															href={dev.githubUrl}
 															target="_blank"
 															rel="noopener noreferrer"
-															className="text-blue-400 flex items-center"
+															className="text-blue-400 flex items-center text-sm"
 														>
-															<Github className="h-3 w-3 mr-1" /> Profile{" "}
-															<ExternalLink className="h-3 w-3 ml-1" />
+															<Github className="h-3 w-3 mr-1 flex-shrink-0" />{" "}
+															Profile{" "}
+															<ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
 														</a>
-														<div className="text-xs text-gray-400">
+														<div className="text-xs text-gray-400 mt-1">
 															{githubVisibility.followers && (
 																<div>
 																	👥 {dev.socialMedia.github.followers}{" "}
@@ -738,16 +932,17 @@ const DatabaseSearch = () => {
 										)}
 
 										{columnVisibility.linkedin && (
-											<TableCell>
+											<TableCell className="align-top">
 												{dev.socialMedia.linkedin.url ? (
 													<a
 														href={dev.socialMedia.linkedin.url}
 														target="_blank"
 														rel="noopener noreferrer"
-														className="text-blue-400 flex items-center"
+														className="text-blue-400 flex items-center text-sm"
 													>
-														<Linkedin className="h-3 w-3 mr-1" /> Profile{" "}
-														<ExternalLink className="h-3 w-3 ml-1" />
+														<Linkedin className="h-3 w-3 mr-1 flex-shrink-0" />{" "}
+														Profile{" "}
+														<ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
 													</a>
 												) : (
 													<span className="text-gray-500 text-sm italic">
@@ -758,19 +953,20 @@ const DatabaseSearch = () => {
 										)}
 
 										{columnVisibility.twitter && (
-											<TableCell>
+											<TableCell className="align-top">
 												{dev.socialMedia.twitter.url ? (
 													<>
 														<a
 															href={dev.socialMedia.twitter.url}
 															target="_blank"
 															rel="noopener noreferrer"
-															className="text-blue-400 flex items-center"
+															className="text-blue-400 flex items-center text-sm"
 														>
-															<Twitter className="h-3 w-3 mr-1" /> Profile{" "}
-															<ExternalLink className="h-3 w-3 ml-1" />
+															<Twitter className="h-3 w-3 mr-1 flex-shrink-0" />{" "}
+															Profile{" "}
+															<ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
 														</a>
-														<div className="text-xs text-gray-400">
+														<div className="text-xs text-gray-400 mt-1">
 															👥 {dev.socialMedia.twitter.followers} followers
 														</div>
 													</>
@@ -783,13 +979,13 @@ const DatabaseSearch = () => {
 										)}
 
 										{columnVisibility.contact && (
-											<TableCell>
+											<TableCell className="align-top">
 												{dev.email && dev.email.trim() !== "" ? (
 													<DropdownMenu>
 														<DropdownMenuTrigger asChild>
 															<Button
 																variant="ghost"
-																className="text-blue-400 hover:text-blue-300 flex items-center px-0"
+																className="text-blue-400 hover:text-blue-300 flex items-center px-0 h-auto"
 															>
 																<Mail className="h-4 w-4 mr-1" />
 																Contact
@@ -803,7 +999,7 @@ const DatabaseSearch = () => {
 															<button
 																onClick={() => {
 																	navigator.clipboard.writeText(
-																		dev.email.trim()
+																		dev.email.trim(),
 																	);
 																	toast({
 																		title: "Copied!",
@@ -819,12 +1015,12 @@ const DatabaseSearch = () => {
 																onClick={() => {
 																	const email = dev.email.trim();
 																	const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
-																		email
+																		email,
 																	)}`;
 																	window.open(
 																		gmailUrl,
 																		"_blank",
-																		"noopener,noreferrer"
+																		"noopener,noreferrer",
 																	);
 																}}
 																className="w-full text-left px-3 py-2 hover:bg-gray-700 text-sm"
@@ -838,6 +1034,26 @@ const DatabaseSearch = () => {
 														No Account
 													</span>
 												)}
+											</TableCell>
+										)}
+
+										{columnVisibility.bio && (
+											<TableCell className="align-top">
+												<TruncatedTextWithTooltip
+													text={dev.bio}
+													maxLength={150}
+													icon={FileText}
+												/>
+											</TableCell>
+										)}
+
+										{columnVisibility.readme && (
+											<TableCell className="align-top">
+												<TruncatedTextWithTooltip
+													text={dev.profileReadme}
+													maxLength={150}
+													icon={BookOpen}
+												/>
 											</TableCell>
 										)}
 									</TableRow>
