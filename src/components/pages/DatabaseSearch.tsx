@@ -11,6 +11,7 @@ import {
 	ExternalLink,
 	FileText,
 	BookOpen,
+	Calendar,
 } from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
@@ -56,12 +57,18 @@ import {useToast} from "@/components/ui/use-toast";
 
 interface ExtendedDeveloper extends Developer {
 	socialMedia: {
-		github: {followers: number; stars: number; repositories: number};
+		github: {
+			followers: number;
+			following: number;
+			stars: number;
+			repositories: number;
+		};
 		linkedin: {url: string};
 		twitter: {followers: number; url?: string};
 	};
 	bio: string;
 	profileReadme: string;
+	githubCreatedAt: string;
 }
 
 interface ColumnVisibility {
@@ -76,6 +83,7 @@ interface ColumnVisibility {
 
 interface GitHubVisibility {
 	followers: boolean;
+	following: boolean;
 	stars: boolean;
 	repositories: boolean;
 }
@@ -91,6 +99,7 @@ const TABLE_PREFIX = "users__";
 
 const fieldMap: Record<string, string> = {
 	"github-followers": "follower_count",
+	"github-following": "following_count",
 	"github-stars": "star_count",
 	"github-repos": "repo_count",
 	"twitter-followers": "twitter_follower_count",
@@ -108,6 +117,7 @@ const DEFAULT_COLUMN_VISIBILITY: ColumnVisibility = {
 
 const DEFAULT_GITHUB_VISIBILITY: GitHubVisibility = {
 	followers: true,
+	following: false,
 	stars: true,
 	repositories: true,
 };
@@ -198,7 +208,7 @@ const DatabaseSearch = () => {
 	const mapToDeveloper = (item: Record<string, any>): ExtendedDeveloper => ({
 		id: item[`${TABLE_PREFIX}id`],
 		name: item[`${TABLE_PREFIX}full_name`] || "",
-		email: item[`${TABLE_PREFIX}email`] || "",
+		email: item[`${TABLE_PREFIX}public_email`] || "",
 		skills: item[`${TABLE_PREFIX}primary_languages`]
 			? item[`${TABLE_PREFIX}primary_languages`]
 					.split(",")
@@ -209,9 +219,11 @@ const DatabaseSearch = () => {
 		githubUrl: `https://github.com/${item[`${TABLE_PREFIX}username`] || ""}`,
 		bio: item[`${TABLE_PREFIX}bio`] || "",
 		profileReadme: item[`${TABLE_PREFIX}profile_readme`] || "",
+		githubCreatedAt: item[`${TABLE_PREFIX}github_created_at`] || "",
 		socialMedia: {
 			github: {
 				followers: item[`${TABLE_PREFIX}follower_count`] || 0,
+				following: item[`${TABLE_PREFIX}following_count`] || 0,
 				stars: item[`${TABLE_PREFIX}star_count`] || 0,
 				repositories: item[`${TABLE_PREFIX}repo_count`] || 0,
 			},
@@ -325,6 +337,18 @@ const DatabaseSearch = () => {
 	};
 
 	const handlePageChange = (page: number) => setCurrentPage(page);
+
+	const formatDate = (dateStr: string) => {
+		if (!dateStr) return "";
+		try {
+			return new Date(dateStr).toLocaleDateString("en-US", {
+				year: "numeric",
+				month: "short",
+			});
+		} catch {
+			return dateStr;
+		}
+	};
 
 	const renderPaginationItems = () => {
 		const items = [];
@@ -641,6 +665,22 @@ const DatabaseSearch = () => {
 												</div>
 												<div className="flex items-center space-x-2 hover:bg-gray-700 rounded p-1">
 													<Checkbox
+														id="github-following"
+														checked={githubVisibility.following}
+														onCheckedChange={() =>
+															toggleGithubField("following")
+														}
+														className="border-gray-500"
+													/>
+													<label
+														htmlFor="github-following"
+														className="text-sm text-gray-400 cursor-pointer flex-1"
+													>
+														Following
+													</label>
+												</div>
+												<div className="flex items-center space-x-2 hover:bg-gray-700 rounded p-1">
+													<Checkbox
 														id="github-stars"
 														checked={githubVisibility.stars}
 														onCheckedChange={() => toggleGithubField("stars")}
@@ -700,6 +740,7 @@ const DatabaseSearch = () => {
 									<div className="px-2 py-1.5 space-y-1">
 										{[
 											{field: "github-followers", label: "GitHub Followers"},
+											{field: "github-following", label: "GitHub Following"},
 											{field: "github-stars", label: "GitHub Stars"},
 											{field: "github-repos", label: "GitHub Repos"},
 											{field: "twitter-followers", label: "Twitter Followers"},
@@ -764,8 +805,8 @@ const DatabaseSearch = () => {
 					{/* Search Tips */}
 					<div className="text-xs text-gray-500 mt-3">
 						💡 Tip: Use commas to search multiple terms. Search looks through
-						name, email, skills, bio, and readme (e.g., "healthcare, AI" finds
-						developers with both terms)
+						name, public email, skills, bio, and readme (e.g., "healthcare, AI"
+						finds developers with both terms)
 					</div>
 
 					<div className="flex items-center justify-between mt-4">
@@ -866,6 +907,14 @@ const DatabaseSearch = () => {
 													<MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
 													<span className="truncate">{dev.location}</span>
 												</div>
+												{dev.githubCreatedAt && (
+													<div className="flex items-center text-gray-500 text-xs mt-1">
+														<Calendar className="h-3 w-3 mr-1 flex-shrink-0" />
+														<span>
+															Joined {formatDate(dev.githubCreatedAt)}
+														</span>
+													</div>
+												)}
 											</div>
 										</TableCell>
 
@@ -909,6 +958,12 @@ const DatabaseSearch = () => {
 																<div>
 																	👥 {dev.socialMedia.github.followers}{" "}
 																	followers
+																</div>
+															)}
+															{githubVisibility.following && (
+																<div>
+																	👤 {dev.socialMedia.github.following}{" "}
+																	following
 																</div>
 															)}
 															{githubVisibility.stars && (
